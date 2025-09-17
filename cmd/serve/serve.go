@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "iivineri/pkg/swagger"
+	_ "iivineri/runtime/swagger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/cobra"
