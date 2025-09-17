@@ -1,0 +1,620 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API pentru aplicația Iivineri",
+        "title": "Iivineri API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:3000",
+    "basePath": "/",
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Returns basic information about the API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Get API information",
+                "responses": {
+                    "200": {
+                        "description": "API information",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "Authenticate user with email and password, optionally with 2FA code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User authentication",
+                "parameters": [
+                    {
+                        "description": "User login credentials (include totp_code if 2FA enabled)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful - returns JWT token and user profile",
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed - invalid credentials or 2FA code",
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthError"
+                        }
+                    },
+                    "403": {
+                        "description": "Account banned or disabled",
+                        "schema": {
+                            "$ref": "#/definitions/models.ForbiddenError"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many login attempts",
+                        "schema": {
+                            "$ref": "#/definitions/models.TooManyRequestsError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout current user session and invalidate the current session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout current session",
+                "responses": {
+                    "200": {
+                        "description": "Session logged out successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.LogoutSuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/models.UnauthorizedError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve current authenticated user's profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get user profile",
+                "responses": {
+                    "200": {
+                        "description": "Profile retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.ProfileSuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/models.UnauthorizedError"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.NotFoundError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "description": "Generate new access token using valid refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh token data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully - returns new access token",
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid refresh token format",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed - invalid or expired refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "description": "Create a new user account with validation and return user profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user account",
+                "parameters": [
+                    {
+                        "description": "User registration data (date_of_birth format: YYYY-MM-DD)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error - invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidationErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - email or nickname already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.ConflictError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the API and its dependencies",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "Health check passed",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "503": {
+                        "description": "Service unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.AuthError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Authentication Failed"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Invalid email or password"
+                }
+            }
+        },
+        "models.ConflictError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Conflict"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Email already exists"
+                }
+            }
+        },
+        "models.ForbiddenError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Forbidden"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Insufficient permissions"
+                }
+            }
+        },
+        "models.InternalServerError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Internal Server Error"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "An unexpected error occurred"
+                }
+            }
+        },
+        "models.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "totp_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "requires_2fa": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.UserPublic"
+                }
+            }
+        },
+        "models.LoginSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.LoginResponse"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Login successful"
+                }
+            }
+        },
+        "models.LogoutSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Logged out successfully"
+                }
+            }
+        },
+        "models.NotFoundError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Not Found"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Resource not found"
+                }
+            }
+        },
+        "models.ProfileSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.UserPublic"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Profile retrieved successfully"
+                }
+            }
+        },
+        "models.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "date_of_birth",
+                "email",
+                "nickname",
+                "password"
+            ],
+            "properties": {
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "models.RegisterSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.UserPublic"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User registered successfully"
+                }
+            }
+        },
+        "models.TooManyRequestsError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Too Many Requests"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Rate limit exceeded"
+                }
+            }
+        },
+        "models.UnauthorizedError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Unauthorized"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Authentication required"
+                }
+            }
+        },
+        "models.UserPublic": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "enabled_2fa": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ValidationErrorDetail": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "example": "email"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "This field is required"
+                },
+                "tag": {
+                    "type": "string",
+                    "example": "required"
+                },
+                "value": {
+                    "type": "string",
+                    "example": ""
+                }
+            }
+        },
+        "models.ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ValidationErrorDetail"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Validation Failed"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "The request contains invalid data"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

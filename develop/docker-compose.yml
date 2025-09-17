@@ -1,0 +1,74 @@
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  iivineri-network:
+    driver: bridge
+    name: iivineri-network
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: iivineri-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-iivineri_dev}
+      POSTGRES_USER: ${DB_USERNAME:-iivineri_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-your_password_here}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "10.100.10.201:5432:5432"
+    networks:
+      - iivineri-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME:-iivineri_user} -d ${DB_NAME:-iivineri_dev}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: iivineri-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "10.100.10.201:6379:6379"
+    networks:
+      - iivineri-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus - Metrics Collection (Optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: iivineri-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "10.100.10.201:${PROMETHEUS_EXTERNAL_PORT:-9090}:9090"
+    networks:
+      - iivineri-network
+    profiles:
+      - monitoring
